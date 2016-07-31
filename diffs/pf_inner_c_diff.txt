@@ -1,0 +1,284 @@
+--- /home/zputrle/Downloads/pforth/csrc/pf_inner.c	2016-07-28 17:33:40.706789628 +0200
++++ /home/zputrle/develompent/diploma_dev/diploma/dev/pforth/csrc/pf_inner.c	2016-07-29 13:37:00.125521021 +0200
+@@ -1,4 +1,3 @@
+-/* @(#) pf_inner.c 98/03/16 1.7 */
+ /***************************************************************
+ ** Inner Interpreter for Forth based on 'C'
+ **
+@@ -29,6 +28,9 @@
+ #include <sys/types.h>
+ 
+ #include "pf_all.h"
++#include "mnt_common.h"
++#include <string.h>
++#include <inttypes.h>
+ 
+ #if defined(WIN32) && !defined(__MINGW32__)
+ #include <crtdbg.h>
+@@ -156,40 +158,209 @@
+     #define TRACENAMES /* no names */
+ #else
+ /* Display name of executing routine. */
+-static void TraceNames( ExecToken Token, cell_t Level )
++static void TraceNames( ExecToken Token, cell_t Level)
+ {
+-    char *DebugName;
++    char *DebugName = NULL;
+     cell_t i;
+ 
+-    if( ffTokenToName( Token, &DebugName ) )
++    /* monitor related varaibles */
++    ssize_t         mnt_recv_size;
++    char            mnt_recv_buffer[MNT_MQ_MAX_MSG_LENGTH + 1];
++    char            mnt_send_buffer[MNT_MQ_MAX_MSG_LENGTH + 1];
++    uint16_t        mnt_requtes_cmd;
++    bool            mnt_req_fl;
++    struct state_data data;
++
++    int cnt = 0;
++
++    cell_t NumSpaces;
++
++    if(! ffTokenToName( Token, &DebugName ) )
+     {
+-        cell_t NumSpaces;
+-        if( gCurrentTask->td_OUT > 0 ) EMIT_CR;
+-        EMIT( '>' );
+-        for( i=0; i<Level; i++ )
+-        {
+-            MSG( "  " );
+-        }
+-        TypeName( DebugName );
++        MSG_NUM_H("Couldn't find Name for ", Token);
++        return;
++    }
++
++    if( gCurrentTask->td_OUT > 0 ) EMIT_CR;
++    EMIT( '>' );
++    for( i=0; i<Level; i++ )
++    {
++        MSG( "  " );
++    }
++    TypeName( DebugName );
++
+ /* Space out to column N then .S */
+-        NumSpaces = 30 - gCurrentTask->td_OUT;
+-        for( i=0; i < NumSpaces; i++ )
+-        {
+-            EMIT( ' ' );
+-        }
+-        ffDotS();
++    NumSpaces = 30 - gCurrentTask->td_OUT;
++    for( i=0; i < NumSpaces; i++ )
++    {
++        EMIT( ' ' );
++    }
++    ffDotS();
+ /* No longer needed?        gCurrentTask->td_OUT = 0; */ /* !!! Hack for ffDotS() */
++    
++    /* resolve monitor request */
+ 
++    if(!mnt_fl)
++    {
++        return;
+     }
+-    else
++
++    mnt_req_fl = true;
++    while(mnt_req_fl)
+     {
+-        MSG_NUM_H("Couldn't find Name for ", Token);
++        mnt_recv_size = mq_receive(
++                        mnt_mq_in,
++                        mnt_recv_buffer,
++                        MNT_MQ_MAX_MSG_LENGTH,
++                        NULL);
++        if(mnt_recv_size < 0)
++        {
++            perror("Error: mq_received");
++            return;
++        }
++
++        if(!mnt_parse_request(mnt_recv_buffer, &mnt_requtes_cmd))
++        {
++            fprintf(stderr, "Error: Monitor: mnt_parse_cmd!\n");
++            return;
++        }
++        
++        switch(mnt_requtes_cmd)
++        {
++        case C_REG_SP:
++            if(!mnt_build_cell_message(mnt_send_buffer,
++                    C_REG_SP,
++                    (uint64_t)gCurrentTask->td_StackPtr))
++            {
++                fprintf(stderr, "Error: Monitor: mnt_build_cell_message!\n");
++                return;
++            }
++
++            if(mq_send(mnt_mq_out,
++                        mnt_send_buffer,
++                        MNT_MQ_MAX_MSG_LENGTH, 0) < 0)
++            {
++                perror("Error: Monitor: mq_seng");
++                return;
++            }
++
++            break;
++
++        case C_REG_RP:
++            if(!mnt_build_cell_message(mnt_send_buffer,
++                    C_REG_RP,
++                    (uint64_t)gCurrentTask->td_ReturnPtr))
++            {
++                fprintf(stderr, "Error: Monitor: mnt_build_cell_message!\n");
++                return;
++            }
++
++            if(mq_send(mnt_mq_out,
++                        mnt_send_buffer,
++                        MNT_MQ_MAX_MSG_LENGTH, 0) < 0)
++            {
++                perror("Error: Monitor: mq_seng");
++                return;
++            }
++
++            break;
++
++
++        case C_DATA_STATE:
++            /* set return stack */
++            data.data_stack_size = gCurrentTask->td_StackBase -
++                                    gCurrentTask->td_StackPtr;
++
++            printf("Data stack size = %d\n", data.data_stack_size);
++            data.data_stack = (uint8_t *) (gCurrentTask->td_StackBase -
++                                data.data_stack_size);
++
++            /*
++            cnt = 0;
++            while (cnt < data.data_stack_size)
++            {
++                printf("cell = %lld\n", *(gCurrentTask->td_StackBase - (cnt + 1)));
++                cnt++;
++            }
++            */
++
++            /*
++            cnt = 0;
++            while (cnt < data.data_stack_size)
++            {
++                printf("cell = %lld\n", *(data.data_stack + cnt));
++                cnt++;
++            }
++            */
++
++            data.data_stack_size = data.data_stack_size * sizeof(cell_t);
++
++        
++            /* set return stack */
++            data.return_stack_size = gCurrentTask->td_ReturnBase -
++                                    gCurrentTask->td_ReturnPtr;
++            data.return_stack = (uint8_t *) (gCurrentTask->td_ReturnBase -
++                                data.return_stack_size);
++            data.return_stack_size = data.return_stack_size * sizeof(cell_t);
++
++            /* set token name */
++            countedStringToCString(DebugName, mnt_recv_buffer);
++            data.token_name = mnt_recv_buffer;
++            data.token_name_size = strlen(mnt_recv_buffer);
++
++            if(!mnt_build_state_message(mnt_send_buffer,
++                                        data))
++            {
++                fprintf(stderr, "ERROR!!!\n");
++                return ;
++            }
++
++            if(mq_send(mnt_mq_out,
++                        mnt_send_buffer,
++                        MNT_MQ_MAX_MSG_LENGTH, 0) < 0)
++            {
++                perror("Error: Monitor: mq_seng");
++                return;
++            }
++
++            break;
++
++        case C_END:
++            if(!mnt_build_cell_message(mnt_send_buffer, C_END, 0))
++            {
++                fprintf(stderr, "Error: Monitor: mnt_build_cell_message!\n");
++                return;
++            }
++
++            if(mq_send(mnt_mq_out,
++                        mnt_send_buffer,
++                        MNT_MQ_MAX_MSG_LENGTH, 0) < 0)
++            {
++                perror("Error: Monitor: mq_seng");
++                return;
++            }
++
++            mnt_req_fl = false;
++
++            break;
++
++        default:
++            fprintf(stderr, "Error: Monitor: Unknown command "
++                "[%"PRIu16"]!\n", mnt_requtes_cmd);
++            return;
++        }
+     }
+ }
+ 
+ #define TRACENAMES \
+-    if( (gVarTraceLevel > Level) ) \
+-    { SAVE_REGISTERS; TraceNames( Token, Level ); LOAD_REGISTERS; }
++    {\
++        if( (gVarTraceLevel > Level) ) \
++        { \
++            SAVE_REGISTERS; \
++            TraceNames( Token, Level); \
++            LOAD_REGISTERS;\
++        }\
++    }
+ #endif /* PF_NO_SHELL */
+ 
+ /* Use local copy of CODE_BASE for speed. */
+@@ -283,6 +454,7 @@
+     uint8_t       *CodeBase = (uint8_t *) CODE_BASE;
+     ThrowCode      ExceptionReturnCode = 0;
+ 
++        
+ /* FIXME
+     gExecutionDepth += 1;
+     PRT(("pfCatch( 0x%x ), depth = %d\n", XT, gExecutionDepth ));
+@@ -310,8 +482,8 @@
+     do
+     {
+ DBUG(("pfCatch: Token = 0x%x\n", Token ));
+-
+-/* --------------------------------------------------------------- */
++   
++        
+ /* If secondary, thread down code tree until we hit a primitive. */
+         while( !IsTokenPrimitive( Token ) )
+         {
+@@ -345,6 +517,8 @@
+         TRACENAMES;
+ #endif
+ 
++        
++
+ /* Execute primitive Token. */
+         switch( Token )
+         {
+@@ -1780,6 +1954,7 @@
+             endcase;
+         }
+ 
++
+         if(InsPtr) Token = READ_CELL_DIC(InsPtr++);   /* Traverse to next token in secondary. */
+ 
+ #ifdef PF_DEBUG

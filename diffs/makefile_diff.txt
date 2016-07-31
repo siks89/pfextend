@@ -1,0 +1,44 @@
+--- /home/zputrle/Downloads/pforth/build/unix/Makefile	2016-07-28 17:33:40.703456297 +0200
++++ /home/zputrle/develompent/diploma_dev/diploma/dev/pforth/build/unix/Makefile	2016-06-10 11:15:49.000000000 +0200
+@@ -37,6 +37,8 @@
+         -Wmissing-prototypes \
+         -Wmissing-declarations
+ 
++MONITOR_LIBS = -lrt
++
+ DEBUGOPTS = -g
+ CCOPTS = $(WIDTHOPT) -x c -O2 $(FULL_WARNINGS) $(EXTRA_CCOPTS) $(DEBUGOPTS)
+ 
+@@ -49,10 +51,12 @@
+ PFINCLUDES = pf_all.h pf_cglue.h pf_clib.h pf_core.h pf_float.h \
+ 	pf_guts.h pf_host.h pf_inc1.h pf_io.h pf_mem.h pf_save.h \
+ 	pf_text.h pf_types.h pf_win32.h pf_words.h pfcompfp.h \
+-	pfcompil.h pfdicdat_arm.h pfinnrfp.h pforth.h
++	pfcompil.h pfdicdat_arm.h pfinnrfp.h pforth.h \
++    cmp.h mnt_common.h
+ PFBASESOURCE = pf_cglue.c pf_clib.c pf_core.c pf_inner.c \
+ 	pf_io.c pf_io_none.c pf_main.c pf_mem.c pf_save.c \
+-	pf_text.c pf_words.c pfcompil.c pfcustom.c
++	pf_text.c pf_words.c pfcompil.c pfcustom.c \
++    cmp.c mnt_common.c
+ PFSOURCE = $(PFBASESOURCE) $(IO_SOURCE)
+ 
+ VPATH = .:$(CSRCDIR):$(CSRCDIR)/posix:$(CSRCDIR)/stdio:$(CSRCDIR)/win32_console:$(CSRCDIR)/win32
+@@ -96,7 +100,7 @@
+ 
+ # Build pforth by compiling 'C' source.
+ $(PFDICAPP): $(PFINCLUDES) $(PFOBJS)
+-	$(LINK) -o $@ $(PFOBJS) $(LDADD) -lm
++	$(LINK) -o $@ $(PFOBJS) $(LDADD) -lm $(MONITOR_LIBS)
+ 
+ # Build basic dictionary image by running newly built pforth and including "system.fth".
+ $(PFORTHDIC): $(PFDICAPP)
+@@ -107,7 +111,7 @@
+ 	echo 'include $(FTHDIR)/savedicd.fth SDAD BYE' | ./$(PFDICAPP) -d $(PFORTHDIC)
+ 
+ $(PFORTHAPP): $(PFDICDAT) $(PFEMBOBJS)
+-	$(LINK) -o $@ $(PFEMBOBJS) $(LDADD) -lm
++	$(LINK) -o $@ $(PFEMBOBJS) $(LDADD) -lm $(MONITOR_LIBS)
+ 	@echo ""
+ 	@echo "Standalone pForth executable written to $(PFORTHAPP)"
+ 

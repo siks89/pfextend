@@ -1,0 +1,11 @@
+--- /home/zputrle/Downloads/pforth/csrc/pf_all.h	2016-07-28 17:33:40.703456297 +0200
++++ /home/zputrle/develompent/diploma_dev/diploma/dev/pforth/csrc/pf_all.h	2016-06-21 18:13:45.000000000 +0200
+@@ -22,6 +22,8 @@
+ **
+ ***************************************************************/
+ 
++#define PF_SUPPORT_TRACE
++
+ #ifdef PF_EMBEDDED
+     #define PF_NO_INIT
+     #define PF_NO_STDIO

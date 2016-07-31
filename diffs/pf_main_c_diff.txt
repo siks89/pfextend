@@ -1,0 +1,37 @@
+--- /home/zputrle/Downloads/pforth/csrc/pf_main.c	2016-07-28 17:33:40.706789628 +0200
++++ /home/zputrle/develompent/diploma_dev/diploma/dev/pforth/csrc/pf_main.c	2016-06-10 13:23:38.000000000 +0200
+@@ -29,6 +29,7 @@
+ #endif
+ 
+ #include "pforth.h"
++#include "mnt_common.h"
+ 
+ #ifndef PF_DEFAULT_DICTIONARY
+ #define PF_DEFAULT_DICTIONARY "pforth.dic"
+@@ -69,6 +70,9 @@
+     cell_t i;
+     int Result;
+ 
++   /* set monitoring flag to false */
++    mnt_fl = false;
++
+ /* For Metroworks on Mac */
+ #ifdef __MWERKS__
+     argc = ccommand(&argv);
+@@ -109,10 +113,15 @@
+                     DicName = PF_DEFAULT_DICTIONARY;
+                 }
+                 break;
++            case 'm':
++                printf("> Monitoring enabled!\n"
++                       "> Attach monitor!\n");
++                mnt_fl = true;
++                break;
+ 
+             default:
+                 ERR(("Unrecognized option!\n"));
+-                ERR(("pforth {-i} {-q} {-dfilename.dic} {sourcefilename}\n"));
++                ERR(("pforth {-i} {-q} {-m} {-dfilename.dic} {sourcefilename}\n"));
+                 Result = 1;
+                 goto on_error;
+                 break;

@@ -1,0 +1,11 @@
+: FINITE_LOOP
+    1000 1
+    DO
+    LOOP
+;
+
+.( EXE: FINITE_LOOP) CR
+
+2 TRACE-LEVEL !
+
+FINITE_LOOP

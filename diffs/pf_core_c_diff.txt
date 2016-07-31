@@ -1,0 +1,79 @@
+--- /home/zputrle/Downloads/pforth/csrc/pf_core.c	2016-07-28 17:33:40.703456297 +0200
++++ /home/zputrle/develompent/diploma_dev/diploma/dev/pforth/csrc/pf_core.c	2016-07-29 19:30:22.456477415 +0200
+@@ -34,6 +34,8 @@
+ ***************************************************************/
+ 
+ #include "pf_all.h"
++#include "mnt_common.h"
++#include "mnt_common.h"
+ 
+ /***************************************************************
+ ** Global Data
+@@ -434,11 +436,29 @@
+     cell_t Result = 0;
+     ExecToken  EntryPoint = 0;
+ 
++    /* monitor variables */
++
++    char mnt_send_buffer[MNT_MQ_MAX_MSG_LENGTH];
++
+ #ifdef PF_USER_INIT
+     Result = PF_USER_INIT;
+-    if( Result < 0 ) goto error1;
++        if( Result < 0 ) goto error1;
+ #endif
+ 
++    /* initialize  monitor communication */
++
++    if(mnt_fl == true)
++    {
++        if(!mnt_com_srv_start(&mnt_mq_in, MNT_MQ_SRV_NAME))
++        {
++            return -1;
++        }
++        if(!mnt_com_srv_start(&mnt_mq_out, MNT_MQ_CLI_NAME))
++        {
++            return -1;
++        }
++    }
++
+     pfInit();
+ 
+ /* Allocate Task structure. */
+@@ -558,6 +578,36 @@
+         pfDeleteTask( cftd );
+     }
+ 
++    /* stop monitor communication */
++
++    if(mnt_fl == true)
++    {
++        printf("Close monitor comunication!\n");
++
++        /* send the EXIT message */
++
++        if(!mnt_build_cell_message(mnt_send_buffer,
++                                   C_EXIT,
++                                   0))
++        {
++            fprintf(stderr, "Error: Monitor: mnt_build_cell_message!\n");
++            return -1;
++        }
++
++        if(mq_send(mnt_mq_out,
++                    mnt_send_buffer,
++                    MNT_MQ_MAX_MSG_LENGTH, 0) < 0)
++        {
++            fprintf(stderr, "Error: Monitor: mq_seng");
++            return -1;
++        }
++
++        /* close message queues */
++
++        mnt_com_srv_stop(mnt_mq_in, MNT_MQ_SRV_NAME);
++        mnt_com_srv_stop(mnt_mq_out, MNT_MQ_CLI_NAME);
++    }
++
+     pfTerm();
+ 
+ #ifdef PF_USER_TERM
