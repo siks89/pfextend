@@ -1,23 +1,17 @@
-## PForth monitoring interface expansion
+## PForth interpreter expansion for observation of a running program
 
-This is PForth monitoring interface expansion. It's intended to provide clear
-monitoring interface for the PForth interpreter.
+Here you can find PForth expansion that provides a MesagePack compatible interface that support observation of a running program.
 
-To build run:
-```sh
-> make
-```
-in the root directory.
+---
 
-This will create the out folder in which there are five files.
-* monitor.out - is a monitor program.
-* pforth_standalone - is a modified version of PFortha
-* analyser.out - simple data analyser used for the test cases.
-* auto_run_monitor.sh - script that runs everything necessery for monitor
-    to work.
-* auto_run_analyser.sh - script that runs everything necessery for analyser
-    to work.
+To build expanded PForth run make in the project's root directory. This will compile PForth and all the support programs. If everything was build successfully, an out directory will be created with the following files:
+* pforth_standalone - the modified version of PForth
+* monitor.out - a monitor program
+* analyser.out - a simple data analyser used for the test cases
+* auto_run_monitor.sh - a script that runs everything necessary for monitor to work
+* auto_run_analyser.sh - a script that runs everything necessary for analyser to work
 
+---
 
 To start the monitor run
 ```sh
@@ -33,9 +27,5 @@ where <path_to_file> points to program that you want to analyse.
 
 The test cases are located in the example directory.
 
-##### Dependencies:
-Known dependencies: git, ed, make, binutils
-
 ##### Warning:
-The modification was only tested on GNU/Linux. It's not intended to work under
-any other OS.
+The expansion was only tested on GNU/Linux OS.
