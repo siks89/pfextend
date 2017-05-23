@@ -7,16 +7,12 @@ CC = gcc
 
 CFLAGS = \
     --std=c99 \
-    -Wall \
-    -lrt \
+    -Wall
 
 all: app
 
 app: $(OBJ)
-	$(CC) $(CFLAGS) -o $(NAME).out $(OBJ)
-
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $(NAME).out $(OBJ) -lrt
 
 clean:
 	rm $(OBJ) $(NAME).out

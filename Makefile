@@ -37,10 +37,10 @@ build:
 	cp scrpits/auto_run_monitor.sh $(OUT_DIR)
 
 clean_create:
-	rm -r pforth
+	rm -rf pforth
 
 clean_build:
-	rm -r $(OUT_DIR)
+	rm -rf $(OUT_DIR)
 	make clean_objects
 
 clean_objects:
@@ -56,6 +56,5 @@ help:
 	@echo "make information:"
 	@echo "> 'make' or 'make all' => Calls make create and make build."
 	@echo "> 'make create' => Creates the modified pforth project."
-	@echo "> 'make build' => Builds and stores the executables in the OUT_DIR \
-                directory (default 'out')."
+	@echo "> 'make build' => Builds and stores the executables in the OUT_DIR directory (default 'out')."
 	@echo "> 'make clean' => Clears the projects directory."
